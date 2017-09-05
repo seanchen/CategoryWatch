@@ -11,20 +11,21 @@
 	"license-name": "GPL-2.0+",
 	"type": "other",
 	"AutoloadClasses": {
-		"CategoryWatch": "CategoryWatch.php"
+		"CategoryWatch\\CategoryWatch": "src/CategoryWatch.php",
+		"CategoryWatch\\Hook": "src/Hook.php"
 	},
 	"ExtensionFunctions": [
-		"CategoryWatch::setupCategoryWatch"
+		"CategoryWatch\\Hook::setupCategoryWatch"
 	],
 	"MessagesDirs": {
 		"CategoryWatch": "i18n"
 	},
 	"Hooks": {
 		"PageContentSave": [
-			"CategoryWatch::onPageContentSave"
+			"CategoryWatch\\Hook::onPageContentSave"
 		],
 		"PageContentSaveComplete": [
-			"CategoryWatch::onPageContentSaveComplete"
+			"CategoryWatch\\Hook::onPageContentSaveComplete"
 		]
 	},
 	"config": {
