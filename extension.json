@@ -21,11 +21,14 @@
 		"CategoryWatch": "i18n"
 	},
 	"Hooks": {
-		"PageContentSave": [
-			"CategoryWatch\\Hook::onPageContentSave"
+		"RecentChanges_save": [
+			"CategoryWatch\\Hook::onRecentChangesSave"
 		],
-		"PageContentSaveComplete": [
-			"CategoryWatch\\Hook::onPageContentSaveComplete"
+		"SendWatchlistEmailNotification": [
+			"CategoryWatch\\Hook::onSendWatchlistEmailNotification"
+		],
+		"UpdateUserMailerFormattedPageStatus": [
+			"CategoryWatch\\Hook::onUpdateUserMailerFormattedPageStatus"
 		]
 	},
 	"config": {

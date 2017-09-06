@@ -1,17 +1,13 @@
 <?php
 /**
- * CategoryWatch extension
- * - Extends watchlist functionality to include notification about membership
- *   changes of watched categories
+ * Hooks for CategoryWatch extension
  *
- * Copyright (C) 2008  Aran Dunkley
- * Copyright (C) 2017  Sean Chen
  * Copyright (C) 2017  Mark A. Hershberger
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,35 +15,24 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
- *
- * See https://www.mediawiki.org/Extension:CategoryWatch
- *     for installation and usage details
- * See http://www.organicdesign.co.nz/Extension_talk:CategoryWatch
- *     for development notes and disucssion
- *
- * @file
- * @ingroup Extensions
- * @author Aran Dunkley [http://www.organicdesign.co.nz/nad User:Nad]
- * @copyright © 2008 Aran Dunkley
- * @licence GNU General Public Licence 2.0 or later
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 namespace CategoryWatch;
 
-use SpecialPage;
+use Content;
+use Status;
 use Title;
 use User;
-use UserMailer;
+use WikiPage;
 
 class Hook {
 	// Instance
 	protected static $watcher;
 
+	const CATWATCH = 'catwatch';
+
 	/**
-     * Instantiate CategoryWatch object and get categories
+	 * Instantiate CategoryWatch object and get categories
 	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/PageContentSave
 	 * @param WikiPage $wikiPage the page
 	 * @param User $user who is modifying
@@ -60,16 +45,16 @@ class Hook {
 	 * @param Status $status Status (object)
 	 */
 	public static function onPageContentSave(
-		$wikiPage, $user, $content, $summary, $isMinor,
-		$isWatch, $section, $flags, $status
+		WikiPage $wikiPage, User $user, Content $content, $summary, $isMinor,
+		$isWatch, $section, $flags, Status $status
 	) {
-        self::$watcher = new CategoryWatch(
-            $wikiPage, $user, $content, $summary, $isMinor, $flags
-        );
+		self::$watcher = new CategoryWatch(
+			$wikiPage, $user, $content, $summary, $isMinor, $flags
+		);
 	}
 
 	/**
-	 * the proper hook for save page request.
+	 * The proper hook for save page request.
 	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/PageContentSaveComplete
 	 * @param WikiPage $article Article edited
 	 * @param User $user who edited
@@ -84,9 +69,75 @@ class Hook {
 	 * @param int $baseRevId base revision
 	 */
 	public static function onPageContentSaveComplete(
-		$article, $user, $content, $summary, $isMinor, $isWatch, $section,
-		$flags, $revision, $status, $baseRevId
+		WikiPage $article, User $user, Content $content, $summary, $isMinor, $isWatch,
+		$section, $flags, Revision $revision, Status $status, $baseRevId
 	) {
-        self::$watcher->notifyCategoryWatchers( $revision, $baseRevId );
+		self::$watcher->notifyCategoryWatchers( $revision, $baseRevId );
+	}
+
+	/**
+	 * Send notifications of categorization changes
+	 * Doing it here because core is hard-coded not to send notifications
+	 * when rc_type == RC_CATEGORIZE
+	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/RecentChanges_save
+	 * @param RecentChange $rc the RC object
+	 */
+	public static function onRecentChangeSave( RecentChange $rc ) {
+		$attr = $rc->getAttributes();
+		if ( $attr['rc_type'] !== RC_CATEGORIZE ) {
+			return;
+		}
+
+		$editor = $rc->getPerformer();
+		$category = $rc->getTitle();
+		$title = Title::newFromID( $attr['rc_cur_id'] );
+		$summary = $attr['rc_comment'];
+		$params = unserialize( $attr['rc_params'] );
+		$ts = $attr['rc_timestamp'];
+		$oldId = $attr['rc_last_oldid'];
+		$added = $rc->getParam( 'added' );
+		$watchers = MediaWikiServices::getInstance()->getWatchedItemStore()
+				  ->updateNotificationTimestamp( $editor, $category, $timestamp );
+
+		$enotif = new EmailNotification();
+		$enotif->actuallyNotifyOnPageChange(
+			$editor, $category, $ts, $summary, false, $oldId, $watchers, self::CATWATCH
+		);
+	}
+
+	/**
+	 * Add our pagestatus to the list of valid status
+	 * @param array &$fps formattedPageSatus variable
+	 */
+	public static function onUpdateUserMailerFormattedPageStatus( array &$fps ) {
+		$fps[] = self::CATWATCH;
+	}
+
+	/**
+	 * EVIL, PURE EVIL
+	 */
+	protected static function accessProtected( $obj, $prop ) {
+		$reflection = new \ReflectionClass( $obj );
+		$property = $reflection->getProperty( $prop );
+		$property->setAccessible( true );
+		return $property->getValue( $obj );
+	}
+
+	/**
+	 * Override actually sending email notifications
+	 * @param User $watchingUser who is getting the notice
+	 * @param Title $category that they are watching
+	 * @param EmailNotification $enotif has useful info
+	 * @return bool false when we dealt with our status
+	 */
+	public static function onSendWatchlistEmailNotification(
+		User $watchingUser, Title $category, EmailNotification $enotif
+	) {
+		if ( self::accessProtected( $enotif, 'pageStatus' ) !== self::CATWATCH ) {
+			return true;
+		}
+
+		wfDebugLog( __METHOD__, "Sending an email now!" );
+		return false;
 	}
 }
