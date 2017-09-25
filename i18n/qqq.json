@@ -14,5 +14,12 @@
 	"categorywatch-catmoveout": "Substituted as $5 in {{msg-mw|categorywatch-emailbody}}.\n* $1 is a page name\n* $2 is the source category name\n* $3 is the target category name",
 	"categorywatch-catadd": "Substituted as $5 in {{msg-mw|categorywatch-emailbody}}.\n* $1 is a page name\n* $2 is a category name",
 	"categorywatch-catsub": "Substituted as $5 in {{msg-mw|categorywatch-emailbody}}.\n* $1 is a page name\n* $2 is a category name",
-	"categorywatch-autocat": "If the \"automatically watching\" feature is enabled, this message is used as a page title in the watchlist.\n* $1 is a username (or a realname)"
+	"categorywatch-autocat": "If the \"automatically watching\" feature is enabled, this message is used as a page title in the watchlist.\n* $1 is a username (or a realname)",
+	"categorywatch-notification-add": "[[User:$1|$1]] $3 [[:$4|$4]]",
+	"categorywatch-notification-remove": "[[User:$1|$1]] $3 [[:$4|$4]]",
+	"categorywatch-notification-bundle": "$1 changes in categorization on {{SITENAME}}",
+	"categorywatch-add-action": "added [[:$1|$1]] to",
+	"categorywatch-remove-action": "removed [[:$1|$1]] from",
+
+	"echo-category-title-categorywatch": "Membership changes in categories watched" 
 }
